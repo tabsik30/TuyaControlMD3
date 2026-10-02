@@ -1,99 +1,119 @@
-# Tuya Control — MD3 (preview.7)
+# Tuya Control - Macro Deck 3 Plugin
 
-## Duża zmiana od ostatniej wersji
+A Macro Deck 3 out-of-process plugin for controlling Tuya smart home devices
+over your local network (LAN) with optional cloud fallback. Built on the
+Macro Deck 3 plugin SDK.
 
-Ten plugin został przepisany pod **SDK 3.0.0-preview.7** (beta.24 hosta) po tym jak
-`IVariableProvider` zostało w praniu przebudowane w SDK (`ProvidedVariables`/
-`GetValueAsync` → `Variables`/`ReadAsync`) i `ISliderActionDefinition` zniknęło
-całkowicie. Przy okazji, na wyraźną prośbę: **usunąłem całą synchronizację stanu**
-(`TuyaStatusPollingService`, zmienną `device_<id>_state`, optymistyczne aktualizacje
-w Toggle/SetSwitchState). Plugin wrócił do kształtu bliższego oryginałowi z MD2 —
-same akcje, bez zmiennych.
+## What This Plugin Does
 
-## Jak to wstawić do prawdziwego projektu
+Tuya Control lets you create Macro Deck buttons that control Tuya-based smart
+home devices (lights, switches, plugs, dimmers, and more) directly from your
+Macro Deck setup. It communicates with devices on your local network using the
+Tuya LAN protocol (versions 3.3, 3.4, and 3.5), with an optional Tuya cloud
+connection for devices that are not on your local network.
 
-1. Wygeneruj świeży projekt **z najnowszego szablonu** (ten sam co dał Ci realny
-   `manifest.json`/`Directory.Packages.props` — jeśli masz już taki wygenerowany,
-   użyj go jako bazy zamiast `dotnet new` od zera)
-2. W korzeniu solution (obok pliku `.slnx`) muszą być: `Directory.Build.props`,
-   `Directory.Packages.props`, `NuGet.config` — są w folderze `_solution-root-files/`
-   w tej paczce, skopiuj je tam
-3. Podmień `manifest.json`, `macrodeck-build.json`, `Program.cs`, `PluginIntegration.cs`
-4. Dorzuć `Services/`, `ConfigFlow/`, `Actions/`, `Models/`, `Assets/icon.svg`
-5. **Nadal aktualne**: `dotnet add package Newtonsoft.Json` — cała logika chmury/LAN
-   używa `JObject`/`JArray`/`JToken`, tego pakietu nie ma domyślnie w szablonie
-6. `dotnet restore` — powinno teraz ściągnąć preview.7 (dzięki `Directory.Packages.props`
-   z pływającą wersją `3.0.0-*`), nie starą preview.3 z cache
+### Features
 
-## Co się zmieniło w kodzie pod preview.7
+- **Local LAN control** - Direct communication with Tuya devices on your network
+  (protocol 3.3, 3.4, 3.5) with low latency
+- **Cloud fallback** - Optional Tuya cloud account for controlling devices
+  remotely or devices that do not support local control
+- **Device discovery** - UDP beacon listener to find device IP addresses and
+  protocol versions on your network
+- **Multiple action types** - Toggle, set state, or send custom commands
+- **Secure credential storage** - Cloud credentials are stored in Macro Deck's
+  encrypted secret store
+- **Configuration flow** - Guided setup through Macro Deck's config flow UI
 
-- **Logowanie**: wszędzie `Serilog.ILogger` (przez `.ForContext<T>()`) zamiast
-  `Microsoft.Extensions.Logging.ILogger<T>` — nowa oficjalna wytyczna z `AGENTS.md`
-  dołączonego do szablonu
-- **`IActionDefinition.Name`/`Description`**: teraz `LocalizedText`, nie `string` —
-  literały tekstowe kompilują się bez zmian dzięki niejawnej konwersji, zmieniłem
-  tylko deklarowany typ w każdej z 4 akcji
-- **`manifest.json`**: `"publisher": {"name": "Tabsik30"}` zamiast `"author"` (które
-  nigdy nie działało), plus `$schema`, `compatibility.macroDeck`
-- **Pakowanie**: `entrypoints.win-x64.executable` teraz wskazuje na
-  `runtimes/win-x64/TuyaControl.exe` (podfolder, nie plik w korzeniu), i domyślnie
-  `--self-contained true` w `macrodeck-build.json` (wcześniej `false`)
+## Requirements
 
-## Co zostało usunięte na Twoją prośbę
+- **Macro Deck 3** desktop app (version 3.0.0-beta.26 or later)
+- Tuya smart home devices on your local network
+- (Optional) Tuya IoT Platform account for cloud features
 
-- `Services/TuyaStatusPollingService.cs` — całkowicie skasowany
-- `TuyaDeviceStore`: zniknęły `_state`/`_reachable`/`GetState`/`SetState`/`IsReachable`,
-  a przy okazji też cały lokalny plik-cache (`LoadLocalCache`/`SaveLocalCache`) — bez
-  zmiennych do zadeklarowania, nie ma już problemu "deklaracja zanim urządzenia się
-  wczytają", więc ten hack stał się zbędny
-- `TuyaDeviceRecord.PrimaryCode` i pole "DP code for two-state buttons" w kroku
-  "Network" configu — istniało wyłącznie na potrzeby synchronizacji stanu
-- Optymistyczne `store.SetState(...)` w `ToggleSwitchAction`/`SetSwitchStateAction`
+## Configuration
 
-Jeśli kiedyś zechcesz to jednak mieć z powrotem — w SDK preview.7 jest nowy,
-natywny `IStateProviderActionDefinition` (`GetActionStateAsync` → aktywny stan z
-listy), który wygląda jak właściwy mechanizm do dwustanowych przycisków bez
-osobnej zmiennej i pollingu. Nie zaimplementowałem go teraz (usunięto na wyraźną
-prośbę), ale to naturalny kandydat na przyszłość.
+The plugin uses Macro Deck's config flow. You will need to configure:
 
-## Co jest pewne (przeniesione 1:1 z działającego kodu MD2)
+### 1. Tuya Cloud Account (Optional)
 
-- Cały protokół LAN 3.3/3.4 (`TuyaLocalClient.cs`) i 3.5 AES-GCM (`TuyaLocalClientV35.cs`)
-  — ramkowanie pakietów, CRC32, negocjacja klucza sesji, PKCS7 — bez zmian logiki
-- UDP discovery (`TuyaDiscovery.cs`) — porty 6666/6667, stały klucz AES do dekodowania
-  pakietów z 6667
-- Logowanie do chmury i podpisywanie żądań HMAC-SHA256 (`TuyaCloudClient.cs`)
-- 4 akcje: Toggle, Set fixed state, Send custom command, Detect (diagnostyka UDP)
+Only needed if you want cloud fallback or cloud-only devices.
 
-## Client ID/Secret podawane w konfiguracji, nie w kodzie
+1. Go to [iot.tuya.com](https://iot.tuya.com) and create a Cloud project
+2. Navigate to **Cloud → Development → Your Project → Overview**
+3. Copy your **Access ID** (Client ID) and **Access Secret** (Client Secret)
+4. In Macro Deck, open the Tuya Control config flow and select
+   **Tuya cloud account (login)**
+5. Fill in your region, country code, username, password, app type, and
+   credentials
 
-Każdy wpisuje **własny** Client ID (Access ID) i Client Secret (Access Secret) w
-kroku "Tuya cloud account" config flow. Dane bierze się z panelu iot.tuya.com →
-Cloud → Development → (Twój projekt) → Overview.
+### 2. Add Devices
 
-## Największa zmiana architektoniczna (bez zmian od poprzedniej wersji)
+For each device you want to control:
 
-`DeviceManagerForm` (tabelka WinForms z edycją IP/wersji/local key) → **jeden wpis
-configu na jedno urządzenie**, przez wieloetapowy `IConfigFlow`
-(`ConfigFlow/TuyaConfigFlow.cs`):
+1. Open the Tuya Control config flow and select **A device**
+2. Choose a source:
+   - **Pick from the Tuya cloud** - Select from your cloud device list
+     (requires cloud account setup first)
+   - **Enter manually** - Type the device ID, name, and local key yourself
+3. Enter the network details:
+   - **IP address** - The device's IP on your local network
+   - **Protocol version** - 3.3, 3.4, 3.5, or "Cloud (no LAN)"
 
-```
-Krok "kind" → [Konto chmurowe] / [Urządzenie]
-  Konto: region/kraj/login/hasło/Client ID/Client Secret → loguje się i cache'uje
-         listę urządzeń w pamięci (TuyaCloudClient.CachedDevices) na czas życia
-         procesu pluginu
-  Urządzenie:
-    "source" (tylko gdy jest cache z chmury): [Z chmury] / [Ręcznie]
-      Z chmury: wybór z listy → auto-uzupełnia id/nazwę/local key
-      Ręcznie: id/nazwa/local key wpisywane ręcznie
-    "network" (zawsze): IP + wersja protokołu → zapis
-```
+### Finding Your Device Information
 
-**Wciąż nieprzetestowane na żywo pod preview.7** — testowaliśmy tylko pod preview.3
-przed tą migracją. Sprawdź od nowa całą ścieżkę configu.
+- **Device ID** - Found in the Tuya Smart / Smart Life app under device settings
+- **Local key** - Found in the Tuya IoT Platform under your cloud project's
+  device list, or from the Tuya Smart app
+- **IP address** - Your router's DHCP client list, or use the **Detect device
+  (UDP)** action to find it
+- **Protocol version** - Use the **Detect device (UDP)** action to detect it
 
-## Test
+## Available Actions
 
-Po buildzie/instalacji: dodaj konto chmurowe przez config flow, sprawdź czy lista
-urządzeń w kroku "Z chmury" się pojawia, dodaj jedno urządzenie, spróbuj akcji Toggle
-na nim.
+### Toggle Switch
+
+Reads the current state of a switch DP and sends the opposite value (on to off,
+or off to on).
+
+| Parameter | Description |
+|-----------|-------------|
+| Device | Pick from your configured devices |
+| DP code | The data point code (default: `switch_1`) |
+
+### Set Switch State
+
+Sends a fixed ON or OFF value for a DP code, regardless of the current state.
+
+| Parameter | Description |
+|-----------|-------------|
+| Device | Pick from your configured devices |
+| DP code | The data point code (default: `switch_1`) |
+| State (on) | Toggle: true for ON, false for OFF |
+
+### Send Custom Command
+
+Sends any DP code and value pair. Useful for dimmers, color controls, modes,
+or any DP not covered by the other actions.
+
+| Parameter | Description |
+|-----------|-------------|
+| Device | Pick from your configured devices |
+| DP code | The data point code to send |
+| Value type | Boolean, Integer, or Text |
+| Value | The value to send |
+
+### Detect Device (UDP)
+
+Listens for 15 seconds for a device's Tuya LAN broadcast beacon to discover its
+current IP address and protocol version. Shows the result as a notification.
+
+| Parameter | Description |
+|-----------|-------------|
+| Device | Pick from your configured devices |
+
+## Variables
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `tuya_state` | Boolean | The on/off state of the first non-cloud device (refreshes every 5 seconds) |
