@@ -24,9 +24,9 @@
     "macroDeck": ">=3.0.0-beta.26"
   },
   "ai": {
-    "interaction": true,
+    "interaction": false,
     "generatedContent": false,
-    "generatedAssets": false,
+    "generatedAssets": true,
     "services": ["OpenAI"]
   }
 }
