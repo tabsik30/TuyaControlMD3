@@ -5,7 +5,7 @@ describes the nature and extent of that assistance.
 
 ## Tools Used
 
-- **OpenCode** (AI coding agent) - Used for code generation, refactoring,
+- **GitHub Copilot** (AI coding assistant) - Used for code generation, refactoring,
   documentation writing, project configuration, and release preparation.
 
 ## Nature of Assistance
