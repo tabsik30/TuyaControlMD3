@@ -1,6 +1,8 @@
 using MacroDeck.Plugin.Hosting;
 using MacroDeck.Plugin.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using TuyaControl.Services;
 
 namespace TuyaControl.Tests;
 
@@ -14,7 +16,13 @@ public sealed class PluginIntegrationTests
 	[Test]
 	public async Task The_plugin_builds_and_initializes()
 	{
-		await using var harness = PluginTestHarness.Create(builder => builder.RegisterIntegration<PluginIntegration>());
+		await using var harness = PluginTestHarness.Create(builder =>
+		{
+			builder.Services.AddSingleton<TuyaDeviceStore>();
+			builder.Services.AddSingleton<TuyaCloudClient>();
+			builder.Services.AddSingleton<TuyaLocalClient>();
+			builder.RegisterIntegration<PluginIntegration>();
+		});
 
 		Assert.DoesNotThrowAsync(harness.InitializeIntegrationsAsync);
 	}

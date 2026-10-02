@@ -8,13 +8,25 @@
   "icon": "Assets/icon.svg",
   "entrypoints": {
     "win-x64": {
-      "executable": "runtimes/win-x64/TuyaControl.exe"
+      "executable": "runtimes/win-x64/TuyaControl.dll",
+      "runtime": {
+        "kind": "FrameworkDependent",
+        "dotnetVersion": "10.0"
+      }
     }
   },
   "publisher": {
-    "name": "Tabsik30"
+    "name": "Maciej Kaczmarek"
   },
+  "license": "MIT",
+  "repository": "https://github.com/tabsik30/TuyaControlMD3",
   "compatibility": {
     "macroDeck": ">=3.0.0-beta.26"
+  },
+  "ai": {
+    "interaction": true,
+    "generatedContent": false,
+    "generatedAssets": false,
+    "services": ["OpenAI"]
   }
 }
