@@ -47,7 +47,8 @@ packages/
 !packages/build/
 
 ## Local feed
-local-feed/
+local-feed/*
+!local-feed/.gitkeep
 
 ## OS
 Thumbs.db
