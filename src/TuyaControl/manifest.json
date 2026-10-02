@@ -8,7 +8,11 @@
   "icon": "Assets/icon.svg",
   "entrypoints": {
     "win-x64": {
-      "executable": "runtimes/win-x64/TuyaControl.exe"
+      "executable": "runtimes/win-x64/TuyaControl.dll",
+      "runtime": {
+        "kind": "FrameworkDependent",
+        "dotnetVersion": "10.0"
+      }
     }
   },
   "publisher": {
